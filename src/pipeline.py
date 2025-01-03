@@ -285,4 +285,54 @@ class Pipeline:
             self.process_instruction(instruction)
             self.debug_pipeline_registers()
 
+    def debug_pipeline_registers(self):
+        """Display current pipeline state"""
+        print("\n=== Pipeline State ===")
+        print("IF  ID  EX  MEM WB")
+        print("-" * 20)
+        
+        # Show current instruction in each stage with safe formatting
+        def format_stage(reg):
+            if reg and hasattr(reg, 'opcode') and reg.opcode:
+                return f"{reg.opcode:3}"
+            return "---"
+        
+        stages = [
+            format_stage(self.IF_ID),
+            format_stage(self.ID_EX),
+            format_stage(self.EX_MEM),
+            format_stage(self.MEM_WB)
+        ]
+        print(" ".join(stages))
+        
+        # Show register contents
+        print("\nRegisters:")
+        for i in range(8):
+            value = self.registers.read_register(i)
+            print(f"R{i}: {value:04x}", end="  ")
+            if (i + 1) % 4 == 0:
+                print()
+        
+        # Show relevant memory contents
+        print("\nMemory (first 8 words):")
+        for i in range(0, 16, 2):
+            try:
+                addr = i // 2
+                value = (self.data_memory.load(i) << 8) | self.data_memory.load(i+1)
+                print(f"[{addr:02x}]: {value:04x}", end="  ")
+                if (addr + 1) % 4 == 0:
+                    print()
+            except Exception as e:
+                print(f"Error reading memory at {i}: {e}")
+
+    def debug_memory(self):
+        """Display memory contents"""
+        print("\nData Memory (first 32 bytes):")
+        for i in range(0, 32, 2):
+            try:
+                word = (self.data_memory.load(i) << 8) | self.data_memory.load(i+1)
+                print(f"Address {i:03d}: {hex(word)[2:].zfill(4)}")
+            except Exception as e:
+                print(f"Error reading memory at {i}: {e}")
+
     # ... (keep other utility methods)
