@@ -5,7 +5,7 @@ microRISC is a 16-bit RISC processor featuring a 5-stage pipeline architecture. 
 
 ### Phase 1: *Processor Design*
 - [Instruction Set Design](docs/design/instructions.md)
-- [Full Circuit Design](docs/design/index.md)
+- [Full Circuit Design](docs/stages.png)
 - [Files]()
 
 ### Phase 2: *Simulator Development*
