@@ -21,6 +21,14 @@ OPCODES = {
 
 def encode_instruction(op, rd=None, rs=None, rt=None, imm=None, shamt=None, target=None):
     """Encodes a given instruction into a 16-bit binary string."""
+    # Validate register numbers
+    if rd is not None and not 0 <= rd < 8:  # 3-bit register addresses
+        raise ValueError(f"Invalid destination register: {rd}")
+    if rs is not None and not 0 <= rs < 8:
+        raise ValueError(f"Invalid source register 1: {rs}")
+    if rt is not None and not 0 <= rt < 8:
+        raise ValueError(f"Invalid source register 2: {rt}")
+        
     opcode = OPCODES[op] << 12
     if op in {"add", "sub", "and", "or", "slt"}:  # R-type
         return opcode | (rs << 9) | (rt << 6) | (rd << 3)
@@ -40,9 +48,45 @@ def encode_instruction(op, rd=None, rs=None, rt=None, imm=None, shamt=None, targ
         raise ValueError(f"Unsupported instruction: {op}")
 
 def decode_instruction(encoded):
-    """Decodes a 16-bit binary string into a human-readable instruction."""
+    """Decodes a 16-bit binary string into a human-readable instruction and operands."""
     opcode = (encoded >> 12) & 0xF
+    
+    # Find the operation
+    op = None
     for key, value in OPCODES.items():
         if value == opcode:
-            return key, encoded & 0xFFF
-    return "UNKNOWN", None
+            op = key
+            break
+    
+    if op is None:
+        return "UNKNOWN", None
+        
+    # Extract operands based on instruction type
+    if op in {"add", "sub", "and", "or", "slt"}:  # R-type
+        rs = (encoded >> 9) & 0x7
+        rt = (encoded >> 6) & 0x7
+        rd = (encoded >> 3) & 0x7
+        return op, [rd, rs, rt]
+    elif op in {"sll", "srl"}:  # R-type with shamt
+        rt = (encoded >> 6) & 0x7
+        rd = (encoded >> 3) & 0x7
+        shamt = encoded & 0x7
+        return op, [rd, rt, shamt]
+    elif op in {"addi", "lw", "sw"}:  # I-type
+        rs = (encoded >> 9) & 0x7
+        rt = (encoded >> 6) & 0x7
+        imm = encoded & 0x3F
+        return op, [rt, rs, imm]
+    elif op in {"beq", "bne"}:  # Branch
+        rs = (encoded >> 9) & 0x7
+        rt = (encoded >> 6) & 0x7
+        offset = encoded & 0x3F
+        return op, [rs, rt, offset]
+    elif op in {"j", "jal"}:  # J-type
+        target = encoded & 0xFFF
+        return op, [target]
+    elif op == "jr":  # Jump register
+        rs = (encoded >> 9) & 0x7
+        return op, [rs]
+    else:
+        return "UNKNOWN", None
