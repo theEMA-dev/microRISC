@@ -9,10 +9,10 @@ R-Type instructions perform register-to-register operations such as arithmetic a
 
 ### **Format**
 ```
-| opcode (4) | rs (3) | rt (3) | rd (3) | funct (3) |
+| opcode (4) | rs or shamt (3) | rt (3) | rd (3) | funct (3) |
 ```
 - **opcode (4 bits):** Specifies the instruction type (e.g., R-Type operations).
-- **rs (3 bits):** First source register.
+- **rs or shamt (3 bits):** First source register, can be used as *shamt* in sll and srl operations.
 - **rt (3 bits):** Second source register.
 - **rd (3 bits):** Destination register.
 - **funct (3 bits):** Specifies the exact operation (e.g., `add`, `sub`).
