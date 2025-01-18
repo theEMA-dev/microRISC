@@ -1,0 +1,9 @@
+// Test program with sample instructions
+0000  // NOP at address 0
+1234  // ADD instruction
+5678  // Load instruction
+9ABC  // Branch instruction
+DEF0  // Jump instruction
+4321  // Another instruction at 0x100
+8765  // Another instruction at 0x200
+CDEF  // Another instruction at 0x300
