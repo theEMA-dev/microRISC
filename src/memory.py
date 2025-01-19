@@ -1,43 +1,30 @@
 class DataMemory:
     def __init__(self):
-        self.memory = [0] * 512  # 512 bytes
-        self.word_size = 16
-
+        self.memory = [0] * 256  # 256 byte'lık bellek
+        
     def load(self, address):
-        if not 0 <= address < 512:
-            raise ValueError(f"Memory address {address} out of bounds")
-        # Convert byte address to word address (each word is 2 bytes)
-        word_addr = address >> 1
-        # Handle byte alignment
-        is_upper_byte = (address & 1) == 0
-        word = self.memory[word_addr]
-        if is_upper_byte:
-            return (word >> 8) & 0xFF
-        else:
-            return word & 0xFF
-
+        """Bellekten veri oku"""
+        if 0 <= address < len(self.memory):
+            return self.memory[address]
+        raise ValueError(f"Invalid memory address: {address}")
+        
     def store(self, address, value):
-        if not 0 <= address < 512:
-            raise ValueError(f"Memory address {address} out of bounds")
-        word_addr = address >> 1
-        is_upper_byte = (address & 1) == 0
-        word = self.memory[word_addr]
-        if is_upper_byte:
-            self.memory[word_addr] = (value << 8) | (word & 0xFF)
+        """Belleğe veri yaz"""
+        if 0 <= address < len(self.memory):
+            self.memory[address] = value & 0xFF  # 8-bit değer
         else:
-            self.memory[word_addr] = (word & 0xFF00) | (value & 0xFF)
+            raise ValueError(f"Invalid memory address: {address}")
 
 class InstructionMemory:
     def __init__(self):
-        self.memory = [0] * 256  # 512 bytes = 256 16-bit instructions
-
+        self.memory = []
+        
     def load(self, address):
-        if not 0 <= address < 256:
-            raise ValueError(f"Instruction address {address} out of bounds")
-        return self.memory[address]
-
+        """Instruction'ı oku"""
+        if 0 <= address < len(self.memory):
+            return self.memory[address]
+        raise ValueError(f"Invalid instruction address: {address}")
+        
     def store_program(self, instructions):
-        if len(instructions) > 256:
-            raise ValueError("Program too large for instruction memory")
-        for i, instr in enumerate(instructions):
-            self.memory[i] = instr & 0xFFFF 
+        """Program instructionlarını yükle"""
+        self.memory = instructions.copy() 
