@@ -141,19 +141,10 @@ def test_branches():
         pipeline.process_instruction(instruction)
         pipeline.debug_pipeline_registers()
 
-def main():
-    try:
-        print("=== 16-bit RISC Processor Testing ===")
-        
-        # Test all components
-        test_instruction_set()
-        test_pipeline_stages()
-        test_memory_system()
-        test_hazards()
-        test_branches()
-        
-    except Exception as e:
-        print(f"Error during testing: {e}")
-
 if __name__ == "__main__":
-    main()
+    print("=== 16-bit RISC Processor Testing ===")
+    test_instruction_set()
+    test_pipeline_stages()
+    test_memory_system()
+    test_hazards()
+    test_branches()

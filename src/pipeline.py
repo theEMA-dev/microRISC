@@ -1,5 +1,7 @@
 from instruction_set import decode_instruction
 from memory import DataMemory, InstructionMemory
+from control_unit import ControlUnit
+from alu_module import ALU
 
 class Registers:
     def __init__(self):
@@ -15,85 +17,6 @@ class Registers:
             raise ValueError(f"Invalid register number: {reg_num}")
         if reg_num != 0:  # R0 is always 0
             self.registers[reg_num] = value & 0xFFFF
-
-class ControlUnit:
-    def get_control_signals(self, opcode):
-        signals = {
-            "reg_write": False,
-            "mem_to_reg": False,
-            "mem_write": False,
-            "branch": False,
-            "alu_op": "add",
-            "alu_src": False,
-            "jump": False,
-            "link": False
-        }
-        
-        # R-type instructions
-        if opcode in ["add", "sub", "and", "or", "slt", "sll", "srl"]:
-            signals["reg_write"] = True
-            signals["alu_op"] = opcode
-        
-        # I-type instructions
-        elif opcode == "addi":
-            signals["reg_write"] = True
-            signals["alu_src"] = True
-            signals["alu_op"] = "add"
-        elif opcode == "lw":
-            signals["reg_write"] = True
-            signals["mem_to_reg"] = True
-            signals["alu_src"] = True
-        elif opcode == "sw":
-            signals["mem_write"] = True
-            signals["alu_src"] = True
-        
-        # Branch instructions
-        elif opcode in ["beq", "bne"]:
-            signals["branch"] = True
-            signals["alu_op"] = "sub"
-        
-        # Jump instructions
-        elif opcode == "j":
-            signals["jump"] = True
-        elif opcode == "jal":
-            signals["jump"] = True
-            signals["link"] = True
-            signals["reg_write"] = True
-        elif opcode == "jr":
-            signals["jump"] = True
-            signals["alu_src"] = True
-            
-        return signals
-
-class ALU:
-    def execute(self, opcode, op1, op2):
-        """
-        Execute ALU operation
-        op1: first operand
-        op2: second operand or immediate value for I-type instructions
-        """
-        op1 = op1 & 0xFFFF
-        op2 = op2 & 0xFFFF
-        
-        if opcode in ["add", "addi", "lw", "sw"]:  # Add load/store operations
-            result = (op1 + op2) & 0xFFFF  # Base address + offset
-        elif opcode == "sub":
-            result = (op1 - op2) & 0xFFFF
-        elif opcode == "and":
-            result = op1 & op2
-        elif opcode == "or":
-            result = op1 | op2
-        elif opcode == "slt":
-            result = 1 if op1 < op2 else 0
-        elif opcode == "sll":
-            result = (op1 << op2) & 0xFFFF
-        elif opcode == "srl":
-            result = (op1 >> op2) & 0xFFFF
-        else:
-            raise ValueError(f"Unknown operation: {opcode}")
-            
-        zero_flag = (result == 0)
-        return result, zero_flag
 
 class PipelineRegister:
     def __init__(self):
@@ -127,154 +50,92 @@ class PipelineRegister:
 
 class Pipeline:
     def __init__(self):
-        self.registers = Registers()
-        self.control_unit = ControlUnit()
-        self.alu = ALU()
+        self.registers = [0] * 8  # R0 her zaman 0
         self.data_memory = DataMemory()
         self.instruction_memory = InstructionMemory()
-        
-        # Initialize pipeline registers
-        self.IF_ID = PipelineRegister()
-        self.ID_EX = PipelineRegister()
-        self.EX_MEM = PipelineRegister()
-        self.MEM_WB = PipelineRegister()
-        
+        self.control_unit = ControlUnit()
+        self.alu = ALU()
         self.pc = 0
-        self.control_signals = None
-        self.stall_cycles = 0
-
+        
     def initialize_program(self, instructions):
-        """Load program into instruction memory and reset processor state"""
-        # Reset program counter and pipeline registers
-        self.pc = 0
-        self.IF_ID.clear()
-        self.ID_EX.clear()
-        self.EX_MEM.clear()
-        self.MEM_WB.clear()
-        
-        # Reset control signals
-        self.control_signals = None
-        self.stall_cycles = 0
-        
-        # Reset registers (except R0 which is always 0)
-        for i in range(1, 8):
-            self.registers.write_register(i, 0)
-            
-        # Load program into instruction memory
         self.instruction_memory.store_program(instructions)
+        self.pc = 0
+        self.registers = [0] * 8  # Registerleri sıfırla
         
-        print(f"Initialized program with {len(instructions)} instructions")
-
-    def stage_if(self, instruction):
-        """Instruction fetch stage"""
-        if_id = PipelineRegister()
-        try:
-            if self.pc < len(self.instruction_memory.memory):
-                instruction = self.instruction_memory.load(self.pc)
-                opcode, operands = decode_instruction(instruction)
-                if_id.instruction = instruction
-                if_id.opcode = opcode
-                if_id.operands = operands
-                self.pc += 1
-        except Exception as e:
-            print(f"IF stage error: {e}")
-        return if_id
-
-    def stage_id(self, if_id):
-        """Instruction decode stage"""
-        if not if_id or not if_id.opcode:
-            return None
+    def write_register(self, reg_num, value):
+        """Register'a değer yaz (R0 hariç)"""
+        if 0 <= reg_num < 8 and reg_num != 0:  # R0'a yazılamaz
+            self.registers[reg_num] = value & 0xFFFF
             
-        try:
-            self.control_signals = self.control_unit.get_control_signals(if_id.opcode)
-            id_ex = PipelineRegister()
-            id_ex.opcode = if_id.opcode
-            id_ex.operands = if_id.operands
-            
-            # Extract register numbers
-            if if_id.operands:
-                if if_id.opcode in ["add", "sub", "and", "or", "slt"]:
-                    id_ex.rd, id_ex.rs, id_ex.rt = if_id.operands
-                elif if_id.opcode in ["sll", "srl"]:
-                    id_ex.rd, id_ex.rt = if_id.operands[:2]
-                elif if_id.opcode in ["addi", "lw", "sw"]:
-                    id_ex.rt, id_ex.rs = if_id.operands[:2]
-                elif if_id.opcode in ["beq", "bne"]:
-                    id_ex.rs, id_ex.rt = if_id.operands[:2]
-                elif if_id.opcode == "jr":
-                    id_ex.rs = if_id.operands[0]
-                    
-            return id_ex
-        except Exception as e:
-            print(f"ID stage error: {e}")
-            return None
-
-    def stage_ex(self, id_ex):
-        """Execute stage"""
-        if not id_ex:
-            return None
-            
-        try:
-            ex_mem = PipelineRegister()
-            ex_mem.opcode = id_ex.opcode
-            
-            # Get operand values
-            op1 = self.registers.read_register(id_ex.rs) if id_ex.rs is not None else 0
-            op2 = self.registers.read_register(id_ex.rt) if id_ex.rt is not None else 0
-            
-            # Execute operation
-            result, zero_flag = self.alu.execute(id_ex.opcode, op1, op2)
-            ex_mem.value = result
-            ex_mem.rd = id_ex.rd
-            
-            return ex_mem
-        except Exception as e:
-            print(f"EX stage error: {e}")
-            return None
-
-    def stage_mem(self, ex_mem):
-        """Memory access stage"""
-        if not ex_mem:
-            return None
-            
-        try:
-            mem_wb = PipelineRegister()
-            mem_wb.opcode = ex_mem.opcode
-            mem_wb.value = ex_mem.value
-            mem_wb.rd = ex_mem.rd
-            
-            if self.control_signals.get("mem_write"):
-                self.data_memory.store(ex_mem.value, 0)  # Simplified memory access
-            elif self.control_signals.get("mem_to_reg"):
-                mem_wb.value = self.data_memory.load(ex_mem.value)
-                
-            return mem_wb
-        except Exception as e:
-            print(f"MEM stage error: {e}")
-            return None
-
-    def stage_wb(self, mem_wb):
-        """Write back stage"""
-        if not mem_wb or not mem_wb.rd:
-            return
-            
-        try:
-            if self.control_signals.get("reg_write"):
-                self.registers.write_register(mem_wb.rd, mem_wb.value)
-        except Exception as e:
-            print(f"WB stage error: {e}")
+    def read_register(self, reg_num):
+        """Register'dan değer oku"""
+        if 0 <= reg_num < 8:
+            return self.registers[reg_num]
+        return 0
 
     def process_instruction(self, instruction):
-        """Process a single instruction through all pipeline stages"""
         try:
-            # Pipeline stages
-            self.IF_ID = self.stage_if(instruction)
-            self.ID_EX = self.stage_id(self.IF_ID)
-            self.EX_MEM = self.stage_ex(self.ID_EX)
-            self.MEM_WB = self.stage_mem(self.EX_MEM)
-            self.stage_wb(self.MEM_WB)
+            opcode, operands = decode_instruction(instruction)
+            signals = self.control_unit.get_control_signals(opcode)
+            
+            # R-type instructions
+            if opcode in ["add", "sub", "and", "or", "slt"]:
+                rd, rs, rt = operands
+                val1 = self.read_register(rs)
+                val2 = self.read_register(rt)
+                result, _ = self.alu.execute(opcode, val1, val2)
+                if signals["reg_write"]:
+                    self.write_register(rd, result)
+                    
+            # I-type instructions
+            elif opcode == "addi":
+                rt, rs, imm = operands
+                val1 = self.read_register(rs)
+                result, _ = self.alu.execute(opcode, val1, imm)
+                if signals["reg_write"]:
+                    self.write_register(rt, result)
+                    
+            # Memory operations
+            elif opcode == "lw":
+                rt, rs, offset = operands
+                addr = (self.read_register(rs) + offset) & 0xFF
+                value = self.data_memory.load(addr)
+                self.write_register(rt, value)
+                
+            elif opcode == "sw":
+                rt, rs, offset = operands
+                addr = (self.read_register(rs) + offset) & 0xFF
+                value = self.read_register(rt)
+                self.data_memory.store(addr, value)
+                
+            # Branch instructions
+            elif opcode in ["beq", "bne"]:
+                rs, rt, offset = operands
+                val1 = self.read_register(rs)
+                val2 = self.read_register(rt)
+                is_equal = val1 == val2
+                if (opcode == "beq" and is_equal) or (opcode == "bne" and not is_equal):
+                    self.pc += offset
+                    
+            # Jump instructions
+            elif opcode == "j":
+                target = operands[0]
+                self.pc = target
+                
+            elif opcode == "jal":
+                target = operands[0]
+                self.write_register(7, self.pc + 1)  # Return address in R7
+                self.pc = target
+                
+            elif opcode == "jr":
+                rs = operands[0]
+                self.pc = self.read_register(rs)
+                
+            return True
+            
         except Exception as e:
-            print(f"Pipeline error: {e}")
+            print(f"Error processing instruction: {e}")
+            return False
 
     def run_program(self, instructions):
         """Run a complete program"""
@@ -287,52 +148,18 @@ class Pipeline:
 
     def debug_pipeline_registers(self):
         """Display current pipeline state"""
-        print("\n=== Pipeline State ===")
-        print("IF  ID  EX  MEM WB")
-        print("-" * 20)
-        
-        # Show current instruction in each stage with safe formatting
-        def format_stage(reg):
-            if reg and hasattr(reg, 'opcode') and reg.opcode:
-                return f"{reg.opcode:3}"
-            return "---"
-        
-        stages = [
-            format_stage(self.IF_ID),
-            format_stage(self.ID_EX),
-            format_stage(self.EX_MEM),
-            format_stage(self.MEM_WB)
-        ]
-        print(" ".join(stages))
-        
-        # Show register contents
         print("\nRegisters:")
         for i in range(8):
-            value = self.registers.read_register(i)
-            print(f"R{i}: {value:04x}", end="  ")
+            print(f"R{i}: {self.registers[i]}", end="  ")
             if (i + 1) % 4 == 0:
                 print()
-        
-        # Show relevant memory contents
-        print("\nMemory (first 8 words):")
-        for i in range(0, 16, 2):
-            try:
-                addr = i // 2
-                value = (self.data_memory.load(i) << 8) | self.data_memory.load(i+1)
-                print(f"[{addr:02x}]: {value:04x}", end="  ")
-                if (addr + 1) % 4 == 0:
-                    print()
-            except Exception as e:
-                print(f"Error reading memory at {i}: {e}")
+        print()
 
     def debug_memory(self):
         """Display memory contents"""
-        print("\nData Memory (first 32 bytes):")
-        for i in range(0, 32, 2):
-            try:
-                word = (self.data_memory.load(i) << 8) | self.data_memory.load(i+1)
-                print(f"Address {i:03d}: {hex(word)[2:].zfill(4)}")
-            except Exception as e:
-                print(f"Error reading memory at {i}: {e}")
+        print("\nMemory (first 16 bytes):")
+        for i in range(0, 16, 2):
+            value = self.data_memory.load(i)
+            print(f"Addr {i:02x}: {value:04x}")
 
     # ... (keep other utility methods)

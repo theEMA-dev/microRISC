@@ -1,35 +1,39 @@
 # control_unit.py
 
-def control_unit(opcode):
-    """
-    Generate control signals based on opcode
-    Returns dict of control signals
-    """
-    signals = {
-        'reg_write': 0,
-        'mem_to_reg': 0,
-        'mem_write': 0,
-        'branch': 0,
-        'alu_op': 'add',
-        'alu_src': 0,
-        'reg_dst': 0
-    }
-    
-    if opcode in ["add", "sub", "and", "or", "slt"]:
-        signals['reg_write'] = 1
-        signals['reg_dst'] = 1
-        signals['alu_op'] = opcode
-    elif opcode == "lw":
-        signals['reg_write'] = 1
-        signals['mem_to_reg'] = 1
-        signals['alu_src'] = 1
-        signals['alu_op'] = 'add'
-    elif opcode == "sw":
-        signals['mem_write'] = 1
-        signals['alu_src'] = 1
-        signals['alu_op'] = 'add'
-    elif opcode in ["beq", "bne"]:
-        signals['branch'] = 1
-        signals['alu_op'] = 'sub'
+class ControlUnit:
+    def get_control_signals(self, opcode):
+        signals = {
+            "reg_write": False,
+            "mem_to_reg": False,
+            "mem_write": False,
+            "branch": False,
+            "alu_op": "add",
+            "alu_src": False,
+            "jump": False,
+            "link": False
+        }
         
-    return signals
+        if opcode in ["add", "sub", "and", "or", "slt"]:
+            signals["reg_write"] = True
+            signals["alu_op"] = opcode
+        elif opcode == "addi":
+            signals["reg_write"] = True
+            signals["alu_src"] = True
+        elif opcode == "lw":
+            signals["reg_write"] = True
+            signals["mem_to_reg"] = True
+            signals["alu_src"] = True
+        elif opcode == "sw":
+            signals["mem_write"] = True
+            signals["alu_src"] = True
+        elif opcode in ["beq", "bne"]:
+            signals["branch"] = True
+            signals["alu_op"] = "sub"
+        elif opcode == "j":
+            signals["jump"] = True
+        elif opcode == "jal":
+            signals["jump"] = True
+            signals["link"] = True
+            signals["reg_write"] = True
+            
+        return signals
