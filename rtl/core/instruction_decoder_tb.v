@@ -27,8 +27,6 @@ module instruction_decoder_tb;
 
     // Test cases
     initial begin
-        $dumpfile("instruction_decoder_tb.vcd");
-        $dumpvars(0, instruction_decoder_tb);
         
         // Test R-type instruction (add r1, r2, r3)
         #10 instruction = 16'b0000_001_010_011_000;

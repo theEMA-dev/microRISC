@@ -1,9 +1,8 @@
-// Test program with sample instructions
-0000  // NOP at address 0
-1234  // ADD instruction
-5678  // Load instruction
-9ABC  // Branch instruction
-DEF0  // Jump instruction
-4321  // Another instruction at 0x100
-8765  // Another instruction at 0x200
-CDEF  // Another instruction at 0x300
+0000  // NOP at 0x000
+1234  // ADD r1,r2,r3
+5678  // LW  r2,0(r3)
+9ABC  // BEQ r1,r2,0x100
+DEF0  // J   0x200
+4321  // ADD r3,r2,r1 at 0x100
+8765  // SW  r2,0(r3) at 0x200
+CDEF  // JR  r1 at 0x300

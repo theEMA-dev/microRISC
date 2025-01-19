@@ -39,9 +39,6 @@ module ex_mem_reg_tb;
 
     // Test stimulus
     initial begin
-        $dumpfile("ex_mem_reg_tb.vcd");
-        $dumpvars(0, ex_mem_reg_tb);
-        
         // Initialize
         errors = 0;
         initialize_signals();

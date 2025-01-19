@@ -7,14 +7,20 @@ module instruction_memory (
 
     // 512 bytes organized as 256 x 16-bit memory
     reg [15:0] imem [0:255];
+    integer i;
     
     // Read is asynchronous for instruction memory
     assign inst = imem[addr[8:1]]; // Convert byte address to word address
     
-    // Initialize memory - typically done through testbench
-    // or external file in real implementation
+    // Initialize memory
     initial begin
-        $readmemh("instruction.hex", imem);
+        // First initialize all memory to 0
+        for (i = 0; i < 256; i = i + 1) begin
+            imem[i] = 16'h0000;
+        end
+        
+        // Then load program
+        $readmemh("D:/Dev/microRISC/rtl/memory/instruction.hex", imem, 0, 3);
     end
 
 endmodule

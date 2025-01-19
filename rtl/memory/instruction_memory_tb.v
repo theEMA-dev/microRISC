@@ -47,12 +47,6 @@ module instruction_memory_tb;
         $finish;
     end
 
-    // Waveform dump
-    initial begin
-        $dumpfile("instruction_memory_tb.vcd");
-        $dumpvars(0, instruction_memory_tb);
-    end
-
     // Task to write hex file
     task write_hex_file;
         integer fd;

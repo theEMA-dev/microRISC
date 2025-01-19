@@ -48,9 +48,6 @@ module mem_wb_reg_tb;
 
     // Test stimulus
     initial begin
-        $dumpfile("mem_wb_reg_tb.vcd");
-        $dumpvars(0, mem_wb_reg_tb);
-        
         errors = 0;
         initialize_signals();
         

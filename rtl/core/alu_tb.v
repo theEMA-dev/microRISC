@@ -85,10 +85,4 @@ module alu_tb;
         end
     endtask
 
-    // Generate waveforms
-    initial begin
-        $dumpfile("alu_tb.vcd");
-        $dumpvars(0, alu_tb);
-    end
-
 endmodule

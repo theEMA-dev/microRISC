@@ -35,8 +35,6 @@ module control_unit_tb;
 
     // Test execution
     initial begin
-        $dumpfile("control_unit_tb.vcd");
-        $dumpvars(0, control_unit_tb);
         errors = 0;
 
         // Test R-type instructions

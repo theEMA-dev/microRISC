@@ -21,9 +21,12 @@ module ex_stage (
     output wire [2:0]  write_reg_addr
 );
 
-    wire [15:0] alu_input_a;
+    reg  [15:0] alu_input_a;
+    reg  [15:0] reg2_data_mux;
     wire [15:0] alu_input_b;
-    wire [15:0] reg2_data_mux;
+
+    wire [15:0] immediate_extended;
+    assign immediate_extended = {{10{immediate[5]}}, immediate};
     
     // Forwarding mux for input A
     always @(*) begin
@@ -45,8 +48,9 @@ module ex_stage (
         endcase
     end
     
-    // ALU source B mux
-    assign alu_input_b = alu_src ? {{10{immediate[5]}}, immediate} : reg2_data_mux;
+    
+    // ALU source B mux (continuous assignment)
+    assign alu_input_b = alu_src ? immediate_extended : reg2_data_mux;
     
     // ALU instance
     alu alu_unit (

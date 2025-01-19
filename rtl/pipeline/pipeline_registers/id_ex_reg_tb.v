@@ -55,9 +55,6 @@ module id_ex_reg_tb;
 
     // Test stimulus
     initial begin
-        $dumpfile("id_ex_reg_tb.vcd");
-        $dumpvars(0, id_ex_reg_tb);
-        
         // Initialize
         errors = 0;
         initialize_signals();

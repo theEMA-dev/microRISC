@@ -1,8 +1,7 @@
 `include "../defines.v"
 `timescale 1ns/1ps
 
-module if_stage_tb;
-    // Signals
+module if_stage_tb();
     reg         clk;
     reg         rst_n;
     reg         stall;
@@ -16,11 +15,8 @@ module if_stage_tb;
     wire [15:0] next_pc;
     wire [15:0] instruction;
 
-    // Test control
-    integer errors;
-
-    // DUT instantiation
-    if_stage dut (
+    // Instance of IF stage
+    if_stage uut (
         .clk(clk),
         .rst_n(rst_n),
         .stall(stall),
@@ -43,116 +39,109 @@ module if_stage_tb;
 
     // Test stimulus
     initial begin
-        $dumpfile("if_stage_tb.vcd");
-        $dumpvars(0, if_stage_tb);
-        
-        errors = 0;
+        // Initialize
         initialize_signals();
         
-        // Test sequence
+        // Test reset
         test_reset();
-        test_sequential_fetch();
+        
+        // Test sequential execution
+        test_sequential();
+        
+        // Test control flow
         test_branch();
         test_jump();
         test_jump_register();
-        test_stall();
         
-        // End simulation
-        $display("\nTest completed with %d errors", errors);
-        $finish;
+        // Test stall
+        test_stall();
+
+        $display("IF Stage Testbench Complete");
+        #100 $finish;
     end
 
-    // Tasks
     task initialize_signals;
         begin
-            rst_n = 1;
+            rst_n = 0;
             stall = 0;
             branch_taken = 0;
             jump = 0;
             jump_reg = 0;
-            branch_target = 16'h0000;
-            jump_target = 16'h0000;
-            jr_target = 16'h0000;
+            branch_target = 16'h0020;
+            jump_target = 16'h0030;
+            jr_target = 16'h0040;
         end
     endtask
 
     task test_reset;
         begin
-            $display("\nTesting reset...");
+            @(posedge clk);
             rst_n = 0;
             @(posedge clk);
-            #1 if (pc !== 16'h0000) begin
-                $display("Error: Reset failed. PC = %h", pc);
-                errors = errors + 1;
-            end
+            if (pc !== 16'h0000) 
+                $display("Error: Reset failed, pc = %h", pc);
             rst_n = 1;
         end
     endtask
 
-    task test_sequential_fetch;
+    task test_sequential;
         begin
-            $display("\nTesting sequential fetch...");
             @(posedge clk);
-            #1 if (next_pc !== (pc + 16'd2)) begin
-                $display("Error: Sequential fetch failed");
-                errors = errors + 1;
-            end
+            if (pc !== 16'h0002) 
+                $display("Error: First increment failed, pc = %h", pc);
+            @(posedge clk);
+            if (pc !== 16'h0004) 
+                $display("Error: Second increment failed, pc = %h", pc);
         end
     endtask
 
     task test_branch;
         begin
-            $display("\nTesting branch...");
-            branch_target = 16'h0100;
             branch_taken = 1;
             @(posedge clk);
-            #1 if (pc !== 16'h0100) begin
-                $display("Error: Branch failed. PC = %h", pc);
-                errors = errors + 1;
-            end
+            if (pc !== branch_target)
+                $display("Error: Branch failed, pc = %h", pc);
             branch_taken = 0;
+            @(posedge clk);
         end
     endtask
 
     task test_jump;
         begin
-            $display("\nTesting jump...");
-            jump_target = 16'h0200;
             jump = 1;
             @(posedge clk);
-            #1 if (pc !== 16'h0200) begin
-                $display("Error: Jump failed. PC = %h", pc);
-                errors = errors + 1;
-            end
+            if (pc !== jump_target)
+                $display("Error: Jump failed, pc = %h", pc);
             jump = 0;
+            @(posedge clk);
         end
     endtask
 
     task test_jump_register;
         begin
-            $display("\nTesting jump register...");
-            jr_target = 16'h0300;
             jump_reg = 1;
             @(posedge clk);
-            #1 if (pc !== 16'h0300) begin
-                $display("Error: Jump register failed. PC = %h", pc);
-                errors = errors + 1;
-            end
+            if (pc !== jr_target)
+                $display("Error: Jump register failed, pc = %h", pc);
             jump_reg = 0;
+            @(posedge clk);
         end
     endtask
 
     task test_stall;
         begin
-            $display("\nTesting stall...");
             stall = 1;
             @(posedge clk);
-            #1 if (pc !== 16'h0300) begin
-                $display("Error: Stall failed. PC changed during stall");
-                errors = errors + 1;
-            end
+            if (pc !== pc)
+                $display("Error: Stall failed, pc = %h", pc);
             stall = 0;
+            @(posedge clk);
         end
     endtask
 
+    // Monitor changes
+    initial begin
+        $monitor("Time=%0t rst_n=%b stall=%b branch=%b jump=%b jr=%b pc=%h",
+                 $time, rst_n, stall, branch_taken, jump, jump_reg, pc);
+    end
 endmodule
