@@ -12,8 +12,8 @@ module hazard_detection (
     input  wire        jump,
     input  wire        jump_reg,
     // Output control signals
-    output wire        stall,
-    output wire        flush
+    output reg         stall,
+    output reg         flush
 );
 
     // Load-use hazard detection
@@ -25,10 +25,20 @@ module hazard_detection (
     wire control_hazard;
     assign control_hazard = branch_taken || jump || jump_reg;
     
-    // Stall on load-use hazard
-    assign stall = load_use_hazard;
-    
-    // Flush on control hazards
-    assign flush = control_hazard;
+    // Priority encoder for hazards
+    always @(*) begin
+        if (load_use_hazard) begin
+            stall = 1'b1;
+            flush = 1'b0;
+        end
+        else if (control_hazard) begin
+            stall = 1'b0;
+            flush = 1'b1;
+        end
+        else begin
+            stall = 1'b0;
+            flush = 1'b0;
+        end
+    end
 
 endmodule

@@ -1,5 +1,4 @@
 `include "../defines.v"
-
 module if_stage (
     input  wire        clk,
     input  wire        rst_n,
@@ -16,15 +15,15 @@ module if_stage (
     output wire [15:0] next_pc,
     output wire [15:0] instruction
 );
-
-    assign next_pc = pc + 16'd2;  // PC+2 since instructions are 16-bit
+    // Change increment to 2 since memory module handles word addressing
+    assign next_pc = pc + 16'd1;  // Changed from 2 to 1
     
     // PC update logic
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             pc <= 16'b0;
         end
-        else if (!stall) begin
+        else if (!stall) begin  // Check if we're not stalled
             if (jump_reg)
                 pc <= jr_target;
             else if (jump)
@@ -32,14 +31,13 @@ module if_stage (
             else if (branch_taken)
                 pc <= branch_target;
             else
-                pc <= next_pc;
+                pc <= next_pc;  // Normal increment
         end
     end
 
     // Instruction memory instance
     instruction_memory imem (
-        .addr(pc[8:0]),     // Lower 9 bits for 512B memory
+        .addr(pc),     // Use PC directly since memory is word-addressed
         .inst(instruction)
     );
-
 endmodule

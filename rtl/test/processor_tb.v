@@ -20,7 +20,7 @@ module processor_tb;
     // Test stimulus
     initial begin
         // Load program
-        $readmemh("test_program.hex", processor.if_stage_inst.instruction_memory.memory);
+        $readmemh("test_program.hex", processor.if_stage_inst.imem.imem);
         
         // Enable waveform dump
         $dumpfile("processor.vcd");
@@ -47,6 +47,16 @@ module processor_tb;
             if (debug_reg_write_enable)
                 $display("WB: Writing R%0d = %h", 
                     debug_reg_write_addr, debug_reg_write_data);
+        end
+    end
+
+        // Add hazard monitoring
+    always @(posedge clk) begin
+        if (rst_n) begin
+            $display("Time=%0t PC=%h Inst=%h Stall=%b Flush=%b",
+                $time, debug_pc, debug_instruction, 
+                processor.hazard_detection_inst.stall,
+                processor.hazard_detection_inst.flush);
         end
     end
 
