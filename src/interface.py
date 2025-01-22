@@ -185,6 +185,12 @@ sw   r7, 0(r6)     # Memory operation depending on r7
         if self.pipeline.ID_EX and self.pipeline.EX_MEM:
             if self.pipeline.ID_EX.rd == self.pipeline.EX_MEM.rd:
                 hazards.append(f"WAW hazard: Register R{self.pipeline.ID_EX.rd}")
+                
+        if self.pipeline.ID_EX and self.pipeline.EX_MEM:
+            # Check if any source register in EX stage is being written in ID stage
+            if (self.pipeline.EX_MEM.rs == self.pipeline.ID_EX.rd or 
+                self.pipeline.EX_MEM.rt == self.pipeline.ID_EX.rd):
+                hazards.append(f"WAR hazard: Register R{self.pipeline.ID_EX.rd}")
 
         return hazards
 
