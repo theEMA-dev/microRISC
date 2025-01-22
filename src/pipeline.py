@@ -57,6 +57,11 @@ class Pipeline:
         self.alu = ALU()
         self.pc = 0
         
+        self.IF_ID = PipelineRegister()
+        self.ID_EX = PipelineRegister()
+        self.EX_MEM = PipelineRegister()
+        self.MEM_WB = PipelineRegister()
+        
     def initialize_program(self, instructions):
         self.instruction_memory.store_program(instructions)
         self.pc = 0
@@ -75,8 +80,20 @@ class Pipeline:
 
     def process_instruction(self, instruction):
         try:
+            self.MEM_WB = self.EX_MEM
+            self.EX_MEM = self.ID_EX
+            self.ID_EX = self.IF_ID
             opcode, operands = decode_instruction(instruction)
             signals = self.control_unit.get_control_signals(opcode)
+            self.IF_ID = PipelineRegister()
+            self.IF_ID.instruction = instruction
+            self.IF_ID.opcode = opcode
+            self.IF_ID.operands = operands
+            
+            if len(operands) >= 3:
+                self.IF_ID.rd = operands[0]
+                self.IF_ID.rs = operands[1]
+                self.IF_ID.rt = operands[2]
             
             # R-type instructions
             if opcode in ["add", "sub", "and", "or", "slt"]:

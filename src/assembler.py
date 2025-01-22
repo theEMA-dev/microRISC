@@ -28,11 +28,16 @@ class Assembler:
         opcode = parts[0].lower()
         
         try:
-            # R-type instructions
+            if len(parts) < 2:
+                raise ValueError(f"Too few operands for {opcode}")
+            
+        # R-type instructions
             if opcode in ['add', 'sub', 'and', 'or', 'slt']:
-                rd = int(parts[1][1:])  # Remove 'R' prefix
-                rs = int(parts[2][1:])
-                rt = int(parts[3][1:])
+                if len(parts) != 4:
+                    raise ValueError(f"{opcode} requires 3 registers")
+                rd = int(parts[1].lstrip('Rr'))
+                rs = int(parts[2].lstrip('Rr'))
+                rt = int(parts[3].lstrip('Rr'))
                 return encode_instruction(opcode, rd=rd, rs=rs, rt=rt)
                 
             # Shift instructions
