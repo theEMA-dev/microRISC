@@ -49,13 +49,14 @@ class PipelineRegister:
         self.__init__()
 
 class Pipeline:
-    def __init__(self):
+    def __init__(self, gui=None):
         self.registers = [0] * 8  # R0 her zaman 0
         self.data_memory = DataMemory()
         self.instruction_memory = InstructionMemory()
         self.control_unit = ControlUnit()
         self.alu = ALU()
         self.pc = 0
+        self.gui = gui
         
         self.IF_ID = PipelineRegister()
         self.ID_EX = PipelineRegister()
@@ -65,7 +66,9 @@ class Pipeline:
     def initialize_program(self, instructions):
         self.instruction_memory.store_program(instructions)
         self.pc = 0
+        self.dm = self.gui.dm
         self.registers = [0] * 8  # Registerleri sıfırla
+        self.data_memory = self.gui.dm if self.gui else DataMemory()
         
     def write_register(self, reg_num, value):
         """Register'a değer yaz (R0 hariç)"""
@@ -116,14 +119,14 @@ class Pipeline:
             elif opcode == "lw":
                 rt, rs, offset = operands
                 addr = (self.read_register(rs) + offset) & 0xFF
-                value = self.data_memory.load(addr)
+                value = self.data_memory.load(addr)  # Uses correct memory instance
                 self.write_register(rt, value)
                 
             elif opcode == "sw":
                 rt, rs, offset = operands
                 addr = (self.read_register(rs) + offset) & 0xFF
                 value = self.read_register(rt)
-                self.data_memory.store(addr, value)
+                self.data_memory.store(addr, value)  # Uses correct memory instance
                 
             # Branch instructions
             elif opcode in ["beq", "bne"]:

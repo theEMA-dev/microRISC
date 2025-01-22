@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 from assembler import Assembler
 from pipeline import Pipeline
+from memory import DataMemory, InstructionMemory
 from instruction_set import decode_instruction
 import sv_ttk
 
@@ -10,12 +11,13 @@ class ProcessorGUI:
         self.root = tk.Tk()
         self.root.title("16-bit RISC Processor Simulator")
         self.root.geometry("1200x800")
-        self.root.config(bg="#111111")
-
-        self.pipeline = Pipeline()
+        self.im = InstructionMemory()
+        self.dm = DataMemory()
+        self.pipeline = Pipeline(gui=self)
         self.assembler = Assembler()
         self.create_widgets()
         self.current_step = 0
+        self.code_text.bind('<KeyRelease>', self.on_code_change)  # Add this line
         style = ttk.Style(self.root)
         style.theme_use("clam")
 
@@ -91,11 +93,26 @@ class ProcessorGUI:
         self.hazard_text.pack(pady=5)
 
         # Memory Panel
-        memory_frame = ttk.LabelFrame(right_frame, text="Memory (Data and Instruction)", padding="5")
+        memory_frame = ttk.LabelFrame(right_frame, text="Memory", padding="5")
         memory_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
-        self.memory_text = scrolledtext.ScrolledText(memory_frame, width=60, height=20)
-        self.memory_text.pack(pady=5)
+        # Create horizontal layout for memory sections
+        mem_container = ttk.Frame(memory_frame)
+        mem_container.pack(fill=tk.BOTH, expand=True)
+
+        # Instruction Memory Section
+        instr_frame = ttk.Frame(mem_container)
+        instr_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2)
+        ttk.Label(instr_frame, text="Instruction Memory").pack()
+        self.instr_memory_text = scrolledtext.ScrolledText(instr_frame, width=30, height=20)
+        self.instr_memory_text.pack(fill=tk.BOTH, expand=True)
+
+        # Data Memory Section
+        data_frame = ttk.Frame(mem_container)
+        data_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2)
+        ttk.Label(data_frame, text="Data Memory").pack()
+        self.data_memory_text = scrolledtext.ScrolledText(data_frame, width=30, height=20)
+        self.data_memory_text.pack(fill=tk.BOTH, expand=True)
 
     def load_example(self):
         example_code = """
@@ -126,12 +143,23 @@ sw   r7, 0(r6)     # Memory operation depending on r7
         self.code_text.insert('1.0', example_code)
 
     def clear_all(self):
+        # Clear text displays
         self.code_text.delete('1.0', tk.END)
         self.output_text.delete('1.0', tk.END)
-        self.memory_text.delete('1.0', tk.END)
+        self.instr_memory_text.delete('1.0', tk.END)
+        self.data_memory_text.delete('1.0', tk.END)
+        
+        # Reset registers and PC
         for reg in self.register_vars:
             self.register_vars[reg].set('0')
         self.pc_var.set('0')
+        
+        # Reset memory
+        self.dm.reset()
+        self.im.reset()
+        
+        # Reset pipeline and step counter
+        self.pipeline = Pipeline(gui=self)
         self.current_step = 0
         self.hazard_text.delete('1.0', tk.END)
 
@@ -139,9 +167,11 @@ sw   r7, 0(r6)     # Memory operation depending on r7
         try:
             self.output_text.delete('1.0', tk.END)
             code = self.code_text.get('1.0', tk.END)
-
+            
             # Kodu derle
             instructions = self.assembler.assemble_program(code)
+            
+            self.im.store_program(instructions)  # Add this line
 
             # Pipeline'ı başlat
             self.pipeline.initialize_program(instructions)
@@ -193,6 +223,35 @@ sw   r7, 0(r6)     # Memory operation depending on r7
                 hazards.append(f"WAR hazard: Register R{self.pipeline.ID_EX.rd}")
 
         return hazards
+    
+    def on_code_change(self, event):
+        """Update instruction memory display when code changes"""
+        try:
+            code = self.code_text.get('1.0', tk.END)
+            if code.strip():
+                instructions = self.assembler.assemble_program(code)
+                self.im.store_program(instructions)
+                self.instr_memory_text.delete('1.0', tk.END)
+                # Display each instruction with PC in hex (word-aligned)
+                for i, instr in enumerate(instructions):
+                    if instr:
+                        pc = i * 2  # PC increments by 2
+                        opcode, operands = decode_instruction(instr)
+                        self.instr_memory_text.insert(tk.END, 
+                            f"0x{pc:02x}: {instr:04x} -> {opcode} {operands}\n")
+        except Exception:
+            # Silently ignore errors during typing
+            pass
+
+    def update_memory_display(self):
+        """Update memory displays"""
+        # Clear data memory display only
+        self.data_memory_text.delete('1.0', tk.END)
+    
+        # Update data memory display
+        data_contents = self.dm.get_memory_contents()
+        self.data_memory_text.insert('1.0', data_contents)
+        self.data_memory_text.see(tk.END)
 
     def update_ui(self, instr):
         op, operands = decode_instruction(instr)
@@ -221,6 +280,8 @@ sw   r7, 0(r6)     # Memory operation depending on r7
         if hazards:
             self.hazard_text.insert(tk.END, "\n".join(hazards) + "\n")
             self.hazard_text.see(tk.END)
+            
+        self.update_memory_display()
 
     def run(self):
         sv_ttk.use_dark_theme()
