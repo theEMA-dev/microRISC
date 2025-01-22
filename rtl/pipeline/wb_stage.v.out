@@ -1,0 +1,28 @@
+#! /c/Source/iverilog-install/bin/vvp
+:ivl_version "12.0 (devel)" "(s20150603-1539-g2693dd32b)";
+:ivl_delay_selection "TYPICAL";
+:vpi_time_precision + 0;
+:vpi_module "C:\iverilog\lib\ivl\system.vpi";
+:vpi_module "C:\iverilog\lib\ivl\vhdl_sys.vpi";
+:vpi_module "C:\iverilog\lib\ivl\vhdl_textio.vpi";
+:vpi_module "C:\iverilog\lib\ivl\v2005_math.vpi";
+:vpi_module "C:\iverilog\lib\ivl\va_math.vpi";
+S_000001412bba2d20 .scope module, "wb_stage" "wb_stage" 2 3;
+ .timescale 0 0;
+    .port_info 0 /INPUT 1 "mem_to_reg";
+    .port_info 1 /INPUT 16 "mem_read_data";
+    .port_info 2 /INPUT 16 "alu_result";
+    .port_info 3 /OUTPUT 16 "write_back_data";
+o000001412bbd6a78 .functor BUFZ 16, C4<zzzzzzzzzzzzzzzz>; HiZ drive
+v000001412bba2eb0_0 .net "alu_result", 15 0, o000001412bbd6a78;  0 drivers
+o000001412bbd6aa8 .functor BUFZ 16, C4<zzzzzzzzzzzzzzzz>; HiZ drive
+v000001412bba2f50_0 .net "mem_read_data", 15 0, o000001412bbd6aa8;  0 drivers
+o000001412bbd6ad8 .functor BUFZ 1, C4<z>; HiZ drive
+v000001412bba2ff0_0 .net "mem_to_reg", 0 0, o000001412bbd6ad8;  0 drivers
+v000001412bba3090_0 .net "write_back_data", 15 0, L_000001412bb8e5b0;  1 drivers
+L_000001412bb8e5b0 .functor MUXZ 16, o000001412bbd6a78, o000001412bbd6aa8, o000001412bbd6ad8, C4<>;
+# The file index is used to find the file name in the following table.
+:file_names 3;
+    "N/A";
+    "<interactive>";
+    "wb_stage.v";

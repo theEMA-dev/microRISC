@@ -35,9 +35,6 @@ module if_id_reg_tb;
 
     // Test sequence
     initial begin
-        $dumpfile("if_id_reg_tb.vcd");
-        $dumpvars(0, if_id_reg_tb);
-        
         // Initialize
         errors = 0;
         rst_n = 1;

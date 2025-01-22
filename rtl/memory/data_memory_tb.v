@@ -80,9 +80,4 @@ module data_memory_tb;
         #10 $finish;
     end
 
-    initial begin
-        $dumpfile("data_memory_tb.vcd");
-        $dumpvars(0, data_memory_tb);
-    end
-
 endmodule
